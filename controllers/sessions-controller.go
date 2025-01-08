@@ -51,26 +51,29 @@ func SessionCreate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": 401, "message": "Cant find User"})
 		return
 	}
-
 	//fmt.Println("User:", user)
+
+	// -----------------------------------
 
 	// Verify HASH Argon
 	// demond@mail.com, password
-	// hash almacenado: $2a$12$Q0LciK2AG8x8bgJMe11VGeMMX17HoKO.CgAEhCTnYRkH3umMOMw9i
-	// Todo actualizar al hash almacenado
+	// hash stored: $2a$12$Q0LciK2AG8x8bgJMe11VGeMMX17HoKO.CgAEhCTnYRkH3umMOMw9i
+	// TODA update stored hash to new version
 
 	/*
 		match, err := comparePasswordAndHash(creds.Password, user.Hash)
 		if err != nil {
-			//log.Fatal(err) dispara os.Exit(1)
+
 			fmt.Printf("Hash error: %v\n", err)
 			c.JSON(http.StatusBadRequest, gin.H{"status": 401, "message": "Unauthorized"})
 			return
-		}*/
+		}
+	*/
 
 	//fmt.Printf("Match: %v\n", match)
 
-	match := true
+	match := true // Now is a demo so jump password verification
+
 	if match {
 
 		//exp := jwt.NewNumericDate(time.Now().Add(3 * time.Minute))

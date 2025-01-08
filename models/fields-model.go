@@ -41,7 +41,7 @@ func FieldsList(body dto.FieldList) ([]map[string]any, error) {
 	records, err := pgx.CollectRows(rows, pgx.RowToMap)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed collecting rows: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Failed collecting rows: %v\n", err)
 	}
 
 	fmt.Println("Rows count:", len(records))

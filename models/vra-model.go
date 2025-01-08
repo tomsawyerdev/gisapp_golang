@@ -68,7 +68,7 @@ func VraList(fieldid int) ([]dao.VraKey, error) {
 	records, err := pgx.CollectRows(rows, pgx.RowToStructByName[dao.VraKey])
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed collecting rows: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Failed db action: %v\n", err)
 		return nil, err
 	}
 
@@ -132,7 +132,7 @@ func VraList2(fieldid int) ([]map[string]any, error) {
 	//records, err := pgx.CollectRows(rows, pgx.RowToStructByName[dao.vra]
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed collecting rows: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Failed db action: %v\n", err)
 		return nil, err
 	}
 
@@ -206,20 +206,22 @@ func VraList2(fieldid int) ([]map[string]any, error) {
 func VraCreate(body dto.VraCreate) error {
 
 	const sql = `INSERT into vra(zonifid,fieldid,creation,target,name,obs) 
-	VALUES( %(zonifid)s,%(fieldid)s,CURRENT_DATE,%(target)s,%(name)s,%(obs)s) 
+	VALUES( @zonifid,@fieldid,CURRENT_DATE,@target,@name,@obs) 
 	RETURNING id`
 
 	args := pgx.NamedArgs{"zonifid": body.ZonifId, "fieldid": body.FieldId, "name": body.Name, "obs": body.Obs}
-	tags, err := svc.DB.Exec(context.Background(), sql, args)
+	row := svc.DB.QueryRow(context.Background(), sql, args)
 
-	fmt.Println("tags rows:", tags.RowsAffected())
+	//Scan the returning id
+
+	fmt.Println("Row:", row)
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Failed INSERT rows: %v\n", err)
 		return err
 	}
 
-	const sql2 = `INSERT into vrachannels(vraid,name,unit,values) VALUES( %(vraid)s,%(name)s,%(unit)s,%(values)s) `
+	const sql2 = `INSERT into vrachannels(vraid,name,unit,values) VALUES( @vraid,@name,@unit,@values) `
 
 	//Warning: executemany()
 
@@ -228,7 +230,7 @@ func VraCreate(body dto.VraCreate) error {
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Failed INSERT rows: %v\n", err)
 		return err
 	}
 
@@ -238,14 +240,14 @@ func VraCreate(body dto.VraCreate) error {
 
 func VraRename(body dto.VraRename) error {
 
-	const sql = `UPDATE vra SET name=%(name)s WHERE id=%(id)s ;`
+	const sql = `UPDATE vra SET name=@name WHERE id=@id ;`
 	args := pgx.NamedArgs{"id": body.Id, "name": body.Name}
 	tags, err := svc.DB.Exec(context.Background(), sql, args)
 
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Failed UPDATE rows: %v\n", err)
 		return err
 	}
 
@@ -262,14 +264,14 @@ func VraDelete(body dto.VraDelete) error {
 
 func VraChannelCreate(body dto.VraChannel) error {
 
-	const sql = `INSERT into vrachannels(vraid,name,unit,values) VALUES( %(vraid)s,%(name)s,%(unit)s,%(values)s)`
+	const sql = `INSERT into vrachannels(vraid,name,unit,values) VALUES( @vraid,@name,@unit,@values)`
 	args := pgx.NamedArgs{"vraid": body.VraId, "name": body.Name, "unit": body.Unit, "values": body.Values}
 	tags, err := svc.DB.Exec(context.Background(), sql, args)
 
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Failed db action: %v\n", err)
 		return err
 	}
 
@@ -278,14 +280,14 @@ func VraChannelCreate(body dto.VraChannel) error {
 
 func VraChannelRename(body dto.VraChannelRename) error {
 
-	const sql = `UPDATE vrachannels SET name=%(name)s WHERE id=%(channelid)s AND vraid=%(vraid)s ;`
+	const sql = `UPDATE vrachannels SET name=@name WHERE id=@channelid AND vraid=@vraid ;`
 	args := pgx.NamedArgs{"channelid": body.ChannelId, "vraid": body.VraId, "name": body.Name}
 	tags, err := svc.DB.Exec(context.Background(), sql, args)
 
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Failed db action: %v\n", err)
 		return err
 	}
 
@@ -294,14 +296,14 @@ func VraChannelRename(body dto.VraChannelRename) error {
 
 func VraChannelUpdate(body dto.VraChannelUpdate) error {
 
-	const sql = `UPDATE vrachannels SET values=%(values)s,unit=%(unit)s WHERE id=%(id)s AND vraid=%(vraid)s ;`
+	const sql = `UPDATE vrachannels SET values=@values,unit=@unit WHERE id=@id AND vraid=@vraid ;`
 	args := pgx.NamedArgs{"id": body.Id, "vraid": body.VraId, "name": body.Name, "unit": body.Unit, "values": body.Values}
 	tags, err := svc.DB.Exec(context.Background(), sql, args)
 
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Failed db action: %v\n", err)
 		return err
 	}
 
@@ -309,14 +311,14 @@ func VraChannelUpdate(body dto.VraChannelUpdate) error {
 }
 
 func VraChannelDelete(body dto.VraChannelDelete) error {
-	const sql = `DELETE from vrachannels  WHERE id=%(channelid)s AND vraid=%(vraid)s ;`
+	const sql = `DELETE from vrachannels  WHERE id=@channelid AND vraid=@vraid ;`
 	args := pgx.NamedArgs{"channelid": body.ChannelId, "vraid": body.VraId}
 	tags, err := svc.DB.Exec(context.Background(), sql, args)
 
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Failed db action: %v\n", err)
 		return err
 	}
 
