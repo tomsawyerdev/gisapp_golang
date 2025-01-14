@@ -102,7 +102,7 @@ func VraList(fieldid int) ([]dao.VraKey, error) {
 			//p1 := &zz                         //colors[idx]            // asigno  a cada zona
 			//p1.SetColor("#008000")            //colors[idx]            // asigno  a cada zona
 			records[idxRow].Vra.Zones[idxZone].Color = colors[idxZone]
-			for idxPol, _ := range zz.Polygons { // # asigno a cada poligono de la zona
+			for idxPol := range zz.Polygons { // # asigno a cada poligono de la zona
 				//pol.Color = "#008000" //colors[idx]
 				//p2 := &pol
 				//p2.SetColor("#008000")
@@ -141,42 +141,43 @@ func VraList2(fieldid int) ([]map[string]any, error) {
 
 	//COLOR ASSIGNATION
 	// Tiene que ser ordenada :menor a mayor ORDER BY it.minvalue o por zone
+	/*
+		for _, r := range records {
+			var colors []string
+			vra := r["vra"].(map[string]any)
+			zonecount := int(vra["zonecount"].(float64))
 
-	for _, r := range records {
-		var colors []string
-		vra := r["vra"].(map[string]any)
-		zonecount := int(vra["zonecount"].(float64))
+			fmt.Println("Count:", zonecount)
+			basecolors := vra["colors"] // es []interface {} hay que castearlo to	.([]string)
+			fmt.Println("Base Colors:", basecolors)
+			fmt.Printf("t1: %T\n", basecolors)
 
-		fmt.Println("Count:", zonecount)
-		basecolors := vra["colors"] // es []interface {} hay que castearlo to	.([]string)
-		fmt.Println("Base Colors:", basecolors)
-		fmt.Printf("t1: %T\n", basecolors)
-		break
 
-		pallete := grd.HexList2RgbList(basecolors.([]string))
-		//count=r['vra']
-		//['zonecount']
+			pallete := grd.HexList2RgbList(basecolors.([]string))
+			//count=r['vra']
+			//['zonecount']
 
-		// https://www.reddit.com/r/golang/comments/bsd6bc/converting_an_interface_to_string/
-		// UNmarshall to struct ???
+			// https://www.reddit.com/r/golang/comments/bsd6bc/converting_an_interface_to_string/
+			// UNmarshall to struct ???
 
-		// Genero los colores
-		if zonecount == 1 { // OJO Da error si count==1
-			colors = []string{"#008000"} // verde
-		} else {
-			colors = grd.HexMultiColorScale(pallete, zonecount)
+			// Genero los colores
+
+			if zonecount == 1 { // OJO Da error si count==1
+				colors = []string{"#008000"} // verde
+			} else {
+				colors = grd.HexMultiColorScale(pallete, zonecount)
+			}
+			fmt.Println("colors:", colors)
+			// Asigno los colores a  cada poligono de la zona
+			zones := vra["zones"].([]map[string]any)
+			for idx, zz := range zones {
+
+				fmt.Println("zones:", idx, zz)
+
+			}
+
 		}
-		fmt.Println("colors:", colors)
-		// Asigno los colores a  cada poligono de la zona
-		zones := vra["zones"].([]map[string]any)
-		for idx, zz := range zones {
-
-			fmt.Println("zones:", idx, zz)
-
-		}
-
-	}
-
+	*/
 	/*
 	   for r in rows:
 	       pallete=grd.HexList2RgbList(r['vra']['colors'])
@@ -210,28 +211,56 @@ func VraCreate(body dto.VraCreate) error {
 	RETURNING id`
 
 	args := pgx.NamedArgs{"zonifid": body.ZonifId, "fieldid": body.FieldId, "name": body.Name, "obs": body.Obs}
-	row := svc.DB.QueryRow(context.Background(), sql, args)
+	row := svc.DB.QueryRow(context.Background(), sql, args) // use QueryRow for returning Id
 
 	//Scan the returning id
-
-	fmt.Println("Row:", row)
-
+	var id int
+	err := row.Scan(&id)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed INSERT rows: %v\n", err)
 		return err
 	}
 
+	fmt.Println("Row:", row)
+
 	const sql2 = `INSERT into vrachannels(vraid,name,unit,values) VALUES( @vraid,@name,@unit,@values) `
 
 	//Warning: executemany()
+	//https://stackoverflow.com/questions/70823061/bulk-insert-in-postgres-in-go-using-pgx
+	//https://donchev.is/post/working-with-postgresql-in-go-using-pgx/#bulk-inserts
+	// transaction ??
 
-	tags, err = svc.DB.Exec(context.Background(), sql2, args)
+	batch := &pgx.Batch{}
+	for _, el := range body.Channels {
+		args := pgx.NamedArgs{
+			"vraid":  id,
+			"name":   el.Name,
+			"unit":   el.Unit,
+			"values": el.Values,
+		}
+		batch.Queue(sql2, args)
+	}
 
-	fmt.Println("tags rows:", tags.RowsAffected())
+	results := svc.DB.SendBatch(context.Background(), batch)
+	defer results.Close()
 
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed INSERT rows: %v\n", err)
-		return err
+	//fmt.Println("results rows:", results)
+
+	for i := 0; i < len(body.Channels); i++ {
+		_, err := results.Exec()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed BATCH INSERT rows: %v\n", err)
+			return err
+			/*
+				var pgErr *pgconn.PgError
+				if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+					log.Printf("user %s already exists", user.Name)
+					continue
+				}
+
+				return fmt.Errorf("unable to insert row: %w", err)
+			*/
+		}
 	}
 
 	return nil

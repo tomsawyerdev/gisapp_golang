@@ -2,15 +2,20 @@ package dto // data transfer objects
 
 //Warning si uso el mismo dto para todos no le puedo poner el required
 
+type VraList struct {
+	FieldId int `json:"fieldid" binding:"required"`
+}
+
 type VraCreate struct {
-	ZonifId int    `json:"zonifid" binding:"required"`
-	FieldId int    `json:"fieldid" binding:"required"`
-	Name    string `json:"name" binding:"required,max=255" sqlParameterName:"name"`
-	Obs     string `json:"obs" binding:"required,max=255" `
+	ZonifId  int    `json:"zonifid" binding:"required"`
+	FieldId  int    `json:"fieldid" binding:"required"`
+	Name     string `json:"name" binding:"required,max=255" sqlParameterName:"name"`
+	Obs      string `json:"obs" binding:"required,max=255" `
+	Channels []VraChannel
 }
 
 type VraChannel struct {
-	VraId  int       `json:"vraid" binding:"required"`
+	VraId  int       `json:"vraid"` // binding:"required"
 	Name   string    `json:"name" binding:"required,max=255"`
 	Unit   string    `json:"units" binding:"required,max=20" `
 	Values []float32 `json:"values" `

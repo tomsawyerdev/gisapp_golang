@@ -34,7 +34,16 @@ func VraList(c *gin.Context) {
 
 	// get fieldid
 
-	records, err := models.VraList(14)
+	var requestBody dto.VraList
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": 400, "message": "Invalid data"})
+		return
+	}
+
+	records, err := models.VraList(requestBody.FieldId)
+	//records, err := models.VraList(14)
+
 	//fmt.Println("GetFarms, err:", err)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": 500, "error": err})

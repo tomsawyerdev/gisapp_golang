@@ -20,7 +20,4 @@ The REST API is developed using *Golang* with the *Gin-Gonic* framework, along w
 The database is *PostgresSql* with the *PostGis* extension installed in order to work with Geospatial data.
 
 
-## Video Demo
-
-Open the file video.mp4 in the current folder
 

@@ -33,6 +33,7 @@ func FarmsList(userid int) ([]map[string]any, error) {
 
 	//fmt.Println("Rows err:", err)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -91,7 +92,7 @@ func FarmCreate(body dto.FarmNew) error {
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 
@@ -110,7 +111,7 @@ func FarmUpdate(body dto.FarmNew) error {
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 	return nil
@@ -128,7 +129,7 @@ func FarmDelete(body dto.FarmNew) error {
 	fmt.Println("tags rows:", tags.Delete())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 

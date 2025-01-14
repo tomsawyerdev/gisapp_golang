@@ -1,7 +1,7 @@
 package routes
 
 import (
-	//"gisapi/controllers"
+	"gisapi/controllers"
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,44 +10,23 @@ import (
 //----------------------------------------------------------------------
 // Zonifications
 //----------------------------------------------------------------------
-/*
-#zoniflist
-#zonifcreate
-#zonifrename
-#zonifupdcolors
-#zonifdelete
-#zonifcreatebuffer
-
-#zonerename
-#zonedelete
-
-#zonecreate
-#zoneupdboundary
-#zoneremovepoints
-#zonesimplify
-#zonerefine
-#zoneupdclip
-#zonifdownloadshp
-
-
-*/
 
 func ZonifRoutes(rgr *gin.RouterGroup) {
-	/*
-		rgr.POST("/zoniflist".controllers.Zoniflist)
-		rgr.POST("/zonifcreate".controllers.Zonifcreate)
-		rgr.POST("/zonifrename".controllers.Zonifrename)
-		rgr.POST("/zonifupdcolors".controllers.Zonifupdcolors)
-		rgr.POST("/zonifdelete".controllers.Zonifdelete)
-		rgr.POST("/zonifcreatebuffer".controllers.Zonifcreatebuffer)
-		rgr.POST("/zonerename".controllers.Zonerename)
-		rgr.POST("/zonedelete".controllers.Zonedelete)
-		rgr.POST("/zonecreate".controllers.Zonecreate)
-		rgr.POST("/zoneupdboundary".controllers.Zoneupdboundary)
-		rgr.POST("/zoneremovepoints".controllers.Zoneremovepoints)
-		rgr.POST("/zonesimplify".controllers.Zonesimplify)
-		rgr.POST("/zonerefine".controllers.Zonerefine)
-		rgr.POST("/zoneupdclip".controllers.Zoneupdclip)
-	*/
+
+	rgr.POST("/zoniflist", controllers.ZonifList)
+
+	rgr.POST("/zonifcreate", controllers.ZonifCreate)
+	rgr.POST("/zonifrename", controllers.ZonifRename)
+	rgr.POST("/zonifupdcolors", controllers.ZonifUpdColors)
+	rgr.POST("/zonifdelete", controllers.ZonifDelete)
+	rgr.POST("/zonifcreatebuffer", controllers.ZonifCreateBuffer)
+	rgr.POST("/zonerename", controllers.ZoneRename)
+	rgr.POST("/zonedelete", controllers.ZoneDelete)
+	rgr.POST("/zonecreate", controllers.ZoneCreate)
+	rgr.POST("/zoneupdboundary", controllers.ZoneUpdBoundary)
+	rgr.POST("/zoneremovepoints", controllers.ZoneRemovePoints)
+	rgr.POST("/zonesimplify", controllers.ZoneSimplify)
+	rgr.POST("/zonerefine", controllers.ZoneRefine)
+	rgr.POST("/zoneupdclip", controllers.ZoneUpdClip)
 
 }

@@ -65,7 +65,7 @@ func FieldVerifyOwnership(body dto.FieldCreate) error {
 
 	err := row.Scan(&count)
 	if err != nil {
-		//fmt.Println("err:", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 	//fmt.Println("Rows count:", count)
@@ -92,7 +92,7 @@ func FieldcreateCircle(body dto.FieldCreate) error {
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 	return nil
@@ -118,7 +118,7 @@ func FieldcreateVerifyBoundary(geojson string) (bool, string, error) {
 	//fmt.Println("Verify Boundary:", verify)
 
 	if err != nil {
-		//fmt.Println("err:", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return false, "", err
 	}
 
@@ -145,7 +145,7 @@ func FieldcreatePolygon(body dto.FieldCreate) error {
 	//fmt.Println("FieldcreatePolygon err:", err)
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 	return nil
@@ -163,7 +163,7 @@ func Fieldrename(body dto.FieldRename) error {
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 	return nil
@@ -180,7 +180,7 @@ func Fielddelete(body dto.FieldDelete) error {
 	//fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 
@@ -201,7 +201,7 @@ func FieldboundaryCircle(body dto.FieldBoundary) error {
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 
@@ -221,7 +221,7 @@ func FieldboundaryPolygon(body dto.FieldBoundary) error {
 	_, err := svc.DB.Exec(context.Background(), sql, args)
 
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 	return nil
@@ -253,7 +253,7 @@ func Fielddownloadgeojson(id int) (string, error) {
 	//fmt.Println("Verify Boundary:", verify)
 
 	if err != nil {
-		//fmt.Println("err:", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return "", err
 	}
 

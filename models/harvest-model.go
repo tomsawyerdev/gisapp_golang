@@ -59,7 +59,7 @@ func HarvestSeasonCreate(body dto.HarvestSeasonCreate) error {
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 
@@ -80,7 +80,7 @@ func HarvestSeasonUpdate(body dto.HarvestSeasonUpdate) error {
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 
@@ -96,8 +96,7 @@ func HarvestSeasonDelete(body dto.HarvestSeasonDelete) error {
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		//log.Print(err)
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 	return nil
@@ -125,7 +124,7 @@ func HarvestOperationCreate(body dto.HarvestOperationCreate) error {
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 
@@ -145,7 +144,7 @@ func HarvestOperationUpdate(body dto.HarvestOperationUpdate) error {
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 	return nil
@@ -162,7 +161,7 @@ func HarvestOperationDelete(body dto.HarvestOperationDelete) error {
 	fmt.Println("tags rows:", tags.RowsAffected())
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return err
 	}
 	return nil
@@ -205,7 +204,7 @@ func HarvestOperationsValues(body dto.HarvestOperationsHist) ([]float32, error) 
 	//fmt.Println("Verify Boundary:", verify)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return []float32{}, err
 	}
 
@@ -237,7 +236,7 @@ func HarvestOperationStamps(colIdx int, hoids []int) ([]dto.HarvestOperationsSta
 
 	//fmt.Println("Rows err:", err)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -294,7 +293,7 @@ func HarvestOperationsBounds4326(hoids []int) ([][]float32, error) {
 	//fmt.Println("Bounds 4326:", bbox)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		//return [][]float32{}, err
 		return nil, err
 	}
@@ -324,7 +323,7 @@ func HarvestOperationsBounds3857(hoids []int) (map[string]float64, error) {
 	//fmt.Println("Bounds 3857:", bbox)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return map[string]float64{}, err
 	}
 
