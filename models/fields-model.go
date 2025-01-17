@@ -99,7 +99,10 @@ func FieldcreateCircle(body dto.FieldCreate) error {
 }
 
 // map[string]any
-func FieldcreateVerifyBoundary(geojson string) (bool, string, error) {
+func FieldcreateVerifyBoundary(polygon map[string]any) (bool, string, error) {
+
+	jsonString, _ := json.Marshal(polygon)
+	//fmt.Println(" Polygon  jsonString:", string(jsonString))
 
 	//sql :=`With  t(g) as (select ST_GeomFromGeoJSON(@geojson)))
 	//        Select ST_isValid(g) isvalid, ST_IsValidReason(g) reason from t;`
@@ -108,7 +111,7 @@ func FieldcreateVerifyBoundary(geojson string) (bool, string, error) {
           Select  json_build_object('isvalid',ST_isValid(g),
                                     'reason',ST_IsValidReason(g)) as verify from t;`
 
-	args := pgx.NamedArgs{"geojson": geojson}
+	args := pgx.NamedArgs{"geojson": string(jsonString)}
 	row := svc.DB.QueryRow(context.Background(), sql, args)
 
 	var verify map[string]any

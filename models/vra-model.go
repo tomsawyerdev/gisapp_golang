@@ -33,7 +33,7 @@ const sql = `SELECT  json_build_object(
 		'colors',(select colors FROM zonif  WHERE id= v.zonifid ),            
 		'zones', ARRAY(SELECT row_to_json(r)
 						 FROM (
-						 SELECT it.id,it.zonifid,it.name,
+						 SELECT it.id::text,it.zonifid::text,it.name,
 								to_char(it.minvalue,'FM9990.000') as minvalue,
 								to_char(it.maxvalue,'FM9990.000') as maxvalue,
 								to_char(ST_Area(polygons::geography)/10000, 'FM999999999.00') as area,
@@ -291,7 +291,7 @@ func VraDelete(body dto.VraDelete) error {
 // Channel
 //-----------------------------------------------
 
-func VraChannelCreate(body dto.VraChannel) error {
+func VraChannelCreate(body dto.VraChannelCreate) error {
 
 	const sql = `INSERT into vrachannels(vraid,name,unit,values) VALUES( @vraid,@name,@unit,@values)`
 	args := pgx.NamedArgs{"vraid": body.VraId, "name": body.Name, "unit": body.Unit, "values": body.Values}

@@ -3,8 +3,8 @@ package models
 import (
 	//"database/sql"
 	"context"
-	//"encoding/json"
-	"errors"
+	"encoding/json"
+	//"errors"
 	"fmt"
 	"gisapi/dao"
 	svc "gisapi/database"
@@ -46,9 +46,9 @@ func ZonifList(id int) ([]dao.ZonifKey, error) {
 												  'geometry',(st_AsGeoJSON((ST_DUMP(polygons)).geom))::json ) ) polygons 
 												   FROM zonifitems it WHERE it.zonifid=h.id ORDER BY it.zoneorder) r )        
 		 )
-		  as zonif FROM zonif h WHERE  h.fieldid=@fieldid ORDER BY creation `
+		  as zonif FROM zonif h WHERE  h.fieldid=$1 ORDER BY creation `
 
-	rows, err := svc.DB.Query(context.Background(), sql, id)
+	rows, err := svc.DB.Query(context.Background(), sql, id) //FieldId
 
 	if err != nil {
 		fmt.Println("Rows err:", err)
@@ -64,7 +64,7 @@ func ZonifList(id int) ([]dao.ZonifKey, error) {
 		return nil, err
 	}
 
-	fmt.Println("Rows count:", len(records))
+	//fmt.Println("Rows count:", len(records))
 	//fmt.Println("Record:", records[0])
 
 	//for idxRow, row := range records {			zonif := row.Zonif}
@@ -75,8 +75,8 @@ func ZonifList(id int) ([]dao.ZonifKey, error) {
 
 		vra := row.Zonif
 
-		fmt.Println("Count:", vra.ZoneCount)
-		fmt.Println("Base Colors:", vra.Colors)
+		//fmt.Println("Count:", vra.ZoneCount)
+		//fmt.Println("Base Colors:", vra.Colors)
 		//fmt.Printf("t1: %T\n", vra.Colors)
 
 		pallete := grd.HexList2RgbList(vra.Colors)
@@ -87,13 +87,13 @@ func ZonifList(id int) ([]dao.ZonifKey, error) {
 		} else {
 			colors = grd.HexMultiColorScale(pallete, vra.ZoneCount)
 		}
-		fmt.Println("colors:", colors)
+		//fmt.Println("colors:", colors)
 		// Asigno los colores a  cada poligono de la zona
 
 		//https://blog.davidvassallo.me/2022/05/11/golang-gotcha-modifying-an-array-of-structs/
 		for idxZone, zz := range vra.Zones {
 
-			fmt.Println("zone:", idxZone, zz.Name)
+			//fmt.Println("zone:", idxZone, zz.Name)
 			//zz.Color = "#008000"
 			//p1 := &zz                         //colors[idx]            // asigno  a cada zona
 			//p1.SetColor("#008000")            //colors[idx]            // asigno  a cada zona
@@ -168,7 +168,7 @@ func ZonifDelete(body dto.ZonifDelete) error {
 }
 
 func ZonifCreateBuffer(body dto.ZonifCreateBuffer) error {
-	const sql = `select zonif_boundary_buffer(@id,@name,@distance);`
+	const sql = `SELECT zonif_boundary_buffer(@id,@name,@distance);`
 
 	args := pgx.NamedArgs{"id": body.Id, "name": body.Name, "distance": body.Distance}
 	_, err := svc.DB.Exec(context.Background(), sql, args)
@@ -213,54 +213,314 @@ func ZoneDelete(body dto.ZoneDelete) error {
 	return nil
 }
 
-// High Geometry Complexity
+// ----------------------------------------------
 func ZoneCreate(body dto.ZoneCreate) (map[string]string, error) {
 
-	sql := `SELECT * FROM boundary_intersection(%(zonifid)s,%(wktpol)s)` // call ctore procedure
+	//fmt.Println("ZoneCreate")
+	var sql string
+	sql = `SELECT * FROM boundary_intersection(@zonifid,@jsonpol)` // call store procedure, return text:Error or WKTPolygon
 
-	fmt.Printf("t1: %T\n", body.Polygon)
-	fmt.Println(body.Polygon)
+	//fmt.Printf("t1: %T\n", body.Polygon) // map[string]interface{}
+	//fmt.Println(body.Polygon)
 
-	args := pgx.NamedArgs{"zonifid": body.ZonifId, "wktpol": body.Polygon}
+	jsonString, _ := json.Marshal(body.Polygon)
+
+	args := pgx.NamedArgs{"zonifid": body.ZonifId, "jsonpol": jsonString}
 	row := svc.DB.QueryRow(context.Background(), sql, args)
 
-	var result map[string]string
+	var result string
+	err := row.Scan(&result) //return: Error or WKTPolygon
 
-	err := row.Scan(&result)
-	fmt.Println("Scan:", result, err)
-
-	if result["boundary_intersection"][0:5] == "Error" {
-
-		//return map[string]string{"status": "error","msg":result["boundary_intersection"][6:]},nil
-		return map[string]string{"status": "error", "msg": result["boundary_intersection"][6:]}, nil
-
-	}
-
-	//wktpol := result
-
-	fmt.Println("clip:", body.Clip)
-
-	err = errors.New("not implementet yet")
+	//fmt.Println("Scan boundary_intersection:", result, err)
+	//fmt.Println("result:", result["boundary_intersection"][0:5])
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
 		return nil, err
 	}
 
+	if result[0:5] == "Error" {
+
+		return map[string]string{"status": "error", "msg": result[6:]}, nil
+	}
+
+	//return map[string]string{"status": "error", "msg": "resulterror"}, nil
+
+	// 2) Corto con el boundary
+	//fmt.Println("Clip:", body.Clip)
+	args = pgx.NamedArgs{"zonifid": body.ZonifId, "wktpol": result}
+	if body.Clip == "o" {
+		// Difference sometimes return polygon so use ST_Multi(
+		// ST_Multi(ST_Difference(polygons,ST_PolygonFromText(%(wktpol)s)))
+		// ST_Difference can return GEOMETRYCOLLECTION EMPTY
+		sql = `UPDATE zonifitems SET polygons= (WITH dif AS( select ST_Multi(ST_SimplifyVW(ST_Difference(st_setsrid(polygons,4326),st_setsrid(ST_PolygonFromText(@wktpol),4326)),0.0000001)) as geo)
+				SELECT CASE WHEN ST_IsEmpty(geo)  THEN 'MULTIPOLYGON EMPTY'::geometry ELSE geo END FROM dif )
+				WHERE zonifid=@zonifid`
+
+		_, err = svc.DB.Exec(context.Background(), sql, args)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
+			return nil, err
+		}
+
+		// Delete if some is empty
+		sql = `DELETE FROM zonifitems WHERE zonifid=@zonifid AND ST_isEmpty(polygons) `
+		_, err = svc.DB.Exec(context.Background(), sql, args)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
+			return nil, err
+		}
+
+		sql = `INSERT into zonifitems(zonifid,name,editable,clip,zoneorder,polygons)
+		VALUES (@zonifid,@name,TRUE,'o',
+		(SELECT max(zoneorder)+1 FROM zonifitems WHERE zonifid=@zonifid),
+		st_multi(ST_CollectionExtract(st_makevalid(ST_PolygonFromText(@wktpol)),3)))`
+		// st_makevalid cuando hay error devuelve GEOMETRY COLLECTION
+
+		args = pgx.NamedArgs{"zonifid": body.ZonifId, "name": body.Name, "wktpol": result}
+
+		_, err = svc.DB.Exec(context.Background(), sql, args)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
+			return nil, err
+		}
+
+	} else {
+		// Clip Under
+
+		sql = `SELECT  st_AsText(ST_Difference(st_setsrid(ST_GeomFromText(@wktpol),4326),
+		(SELECT  ST_Union(st_setsrid(polygons,4326)) FROM zonifitems WHERE zonifid=@zonifid GROUP BY zonifid)
+		 )) as geometry`
+
+		rows, err := svc.DB.Query(context.Background(), sql, args)
+
+		if err != nil {
+			fmt.Println("Rows err:", err)
+			return nil, err
+		}
+		defer rows.Close()
+
+		records, err := pgx.CollectRows(rows, pgx.RowToMap)
+		if err != nil {
+			fmt.Println("Rows err:", err)
+			return nil, err
+		}
+
+		//---------------------------------
+
+		wktdifpol := records[0]["geometry"].(string)
+		//fmt.Println("Difference pol:", wktdifpol[0:7])
+
+		if wktdifpol[0:7] == "POLYGON" { // SINGLE POLYGON
+
+			sql = `INSERT into zonifitems(zonifid,name,editable,clip,zoneorder,polygons)
+			VALUES (@zonifid,@name,TRUE,'u',
+			(SELECT max(zoneorder)+1 FROM zonifitems WHERE zonifid=@zonifid),
+			 ST_Multi(ST_setsrid(ST_PolygonFromText(@wktdifpol),4326)))`
+
+			args = pgx.NamedArgs{"zonifid": body.ZonifId, "name": body.Name, "wktdifpol": wktdifpol}
+
+			_, err = svc.DB.Exec(context.Background(), sql, args)
+
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
+				return nil, err
+			}
+
+		} else {
+			//MULTIPLYGON
+			sql = `SELECT ST_astext(dump.poly) as wktonepoly FROM (SELECT (ST_Dump(ST_MultiPolygonFromText(@wktdifpol))).geom as poly ) AS dump  ORDER BY ST_Area(dump.poly) DESC LIMIT 1;`
+			args = pgx.NamedArgs{"wktdifpol": wktdifpol}
+
+			row := svc.DB.QueryRow(context.Background(), sql, args)
+
+			var result map[string]any
+
+			err := row.Scan(&result)
+			//fmt.Println("Scan:", result)
+
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
+				return nil, err
+			}
+
+			wktonepoly := result["wktonepoly"].(string)
+			//fmt.Println("wktonepoly:", wktonepoly[0:7])
+
+			sql = `INSERT into zonifitems(zonifid,name,editable,clip,zoneorder,polygons)
+			 VALUES (@zonifid,@name,TRUE,'u',
+			 (SELECT max(zoneorder)+1 FROM zonifitems WHERE zonifid=@zonifid),
+			  ST_Multi(ST_setsrid(ST_PolygonFromText(@wktonepoly),4326)))`
+
+			args = pgx.NamedArgs{"zonifid": body.ZonifId, "name": body.Name, "wktonepoly": wktonepoly}
+
+			_, err = svc.DB.Exec(context.Background(), sql, args)
+
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
+				return nil, err
+			}
+
+		}
+
+	}
 	return nil, nil
 }
 
 // High Geometry Complexity
-func ZoneUpdBoundary(body dto.ZoneUpdBoundary) error {
+func ZoneUpdBoundary(body dto.ZoneUpdBoundary) (map[string]string, error) {
 
-	err := errors.New("not implementet yet")
+	fmt.Printf("ZoneUpdBoundary")
+
+	var sql string
+	sql = `SELECT * FROM boundary_intersection(@zonifid,@jsonpol)` // call store procedure, return text:Error or WKTPolygon
+
+	fmt.Printf("t1: %T\n", body.Polygon) // map[string]interface{}
+	//fmt.Println(body.Polygon)
+
+	jsonString, _ := json.Marshal(body.Polygon)
+
+	args := pgx.NamedArgs{"zonifid": body.ZonifId, "jsonpol": jsonString}
+	row := svc.DB.QueryRow(context.Background(), sql, args)
+
+	var result string
+	err := row.Scan(&result) //return: Error or WKTPolygon
+
+	fmt.Println("Scan boundary_intersection:", result, err)
+	//fmt.Println("result:", result["boundary_intersection"][0:5])
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	if result[0:5] == "Error" {
+
+		return map[string]string{"status": "error", "msg": result[6:]}, nil
+	}
+
+	//return map[string]string{"status": "error", "msg": "resulterror"}, nil
+
+	// 2) Corto con el boundary
+	fmt.Println("Clip:", body.Clip)
+	args = pgx.NamedArgs{"zonifid": body.ZonifId, "zoneid": body.ZoneId, "wktpol": result}
+	if body.Clip == "o" {
+
+		// Difference sometimes return polygon so use ST_Multi(
+		// ST_Multi(ST_Difference(polygons,ST_PolygonFromText(%(wktpol)s)))
+		// ST_Difference can return GEOMETRYCOLLECTION EMPTY
+		sql = `UPDATE zonifitems SET polygons= (WITH dif AS( select ST_Multi(ST_Difference(st_setsrid(polygons,4326),st_setsrid(ST_PolygonFromText(@wktpol),4326))) as geo)
+											SELECT CASE WHEN ST_IsEmpty(geo)  THEN 'MULTIPOLYGON EMPTY'::geometry ELSE geo END FROM dif                               
+											)
+		WHERE zonifid=@zonifid AND id != @zoneid`
+
+		_, err = svc.DB.Exec(context.Background(), sql, args)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
+			return nil, err
+		}
+
+		// Delete if some is empty
+		sql = `DELETE FROM zonifitems WHERE zonifid=@zonifid AND ST_isEmpty(polygons) `
+		_, err = svc.DB.Exec(context.Background(), sql, args)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
+			return nil, err
+		}
+
+		// Update the zone polygon
+		sql = `UPDATE zonifitems SET polygons= ST_Multi(ST_PolygonFromText(@wktpol))
+			WHERE zonifid=@zonifid AND id=@zoneid`
+
+		_, err = svc.DB.Exec(context.Background(), sql, args)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
+			return nil, err
+		}
+
+		return nil, nil
+
+	} else {
+		// Clip is Under
+		sql = `SELECT  st_AsText(ST_Difference(st_setsrid(ST_GeomFromText(@wktpol),4326),
+				(SELECT  ST_Union(st_setsrid(polygons,4326))  FROM zonifitems  WHERE zonifid=@zonifid  AND id!=@zoneid GROUP BY zonifid)
+	 			)) as geometry`
+
+		rows, err := svc.DB.Query(context.Background(), sql, args)
+
+		if err != nil {
+			fmt.Println("Rows err:", err)
+			return nil, err
+		}
+		defer rows.Close()
+
+		records, err := pgx.CollectRows(rows, pgx.RowToMap)
+		if err != nil {
+			fmt.Println("Rows err:", err)
+			return nil, err
+		}
+
+		//---------------------------------
+
+		wktdifpol := records[0]["geometry"].(string)
+		fmt.Println("difference pol:", wktdifpol[0:7])
+
+		if wktdifpol[0:7] == "POLYGON" { // SINGLE POLYGON
+
+			sql = `UPDATE zonifitems SET polygons= ST_Multi(ST_SimplifyVW(ST_PolygonFromText(@wktdifpol),0.0000001))
+				WHERE zonifid=@zonifid AND id=@zoneid`
+
+			args := pgx.NamedArgs{"zonifid": body.ZonifId, "zoneid": body.ZoneId, "wktdifpol": wktdifpol}
+			_, err = svc.DB.Exec(context.Background(), sql, args)
+
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
+				return nil, err
+			}
+
+		} else {
+			//MULTIPOLYGON then Extract max area polygon
+
+			fmt.Println("MULTIPOLYGON")
+
+			sql = `SELECT ST_astext(dump.poly) as wktonepoly FROM (SELECT (ST_Dump(ST_MultiPolygonFromText(@wktdifpol))).geom as poly ) AS dump  ORDER BY ST_Area(dump.poly) DESC LIMIT 1;`
+
+			args := pgx.NamedArgs{"wktdifpol": wktdifpol}
+			row := svc.DB.QueryRow(context.Background(), sql, args)
+
+			var result map[string]any
+
+			err := row.Scan(&result)
+			fmt.Println("Scan:", result)
+
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
+				return nil, err
+			}
+
+			wktonepoly := result["wktonepoly"].(string)
+			fmt.Println("wktonepoly:", wktonepoly[0:7])
+
+			sql = `UPDATE zonifitems SET polygons=  ST_Multi(ST_SimplifyVW(ST_PolygonFromText(@wktonepoly),0.0000001))                
+				WHERE zonifid=@zonifid AND id=@zoneid`
+
+			args = pgx.NamedArgs{"zonifid": body.ZonifId, "zoneid": body.ZoneId, "wktonepoly": wktonepoly}
+			_, err = svc.DB.Exec(context.Background(), sql, args)
+
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Fail db operation : %v\n", err)
+				return nil, err
+			}
+
+		}
+	}
+	return nil, nil
 }
 func ZoneRemovePoints(body dto.ZoneRemovePoints) error {
 
@@ -309,7 +569,7 @@ func ZoneUpdClip(body dto.ZoneUpdClip) error {
 	if body.Clip == "u" {
 		clip = "o"
 	}
-	const sql = `sql="""UPDATE zonifitems set clip=@clip WHERE id=@id AND zonifid=@zonifid ;`
+	const sql = `UPDATE zonifitems set clip=@clip WHERE id=@id AND zonifid=@zonifid ;`
 	args := pgx.NamedArgs{"id": body.ZoneId, "zonifid": body.ZonifId, "clip": clip}
 	_, err := svc.DB.Exec(context.Background(), sql, args)
 

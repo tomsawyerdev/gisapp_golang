@@ -97,7 +97,10 @@ func main() {
 	AddRoutes2(router, "/farms", middlewares.IsAuth(), routes.FarmsRoutes)
 	AddRoutes2(router, "/fields", middlewares.IsAuth(), routes.FieldsRoutes)
 	AddRoutes2(router, "/harvest", middlewares.IsAuth(), routes.HarvestRoutes)
-	AddRoutes2(router, "/vra", middlewares.SetId(), routes.VraRoutes)
+	//AddRoutes2(router, "/zonif", middlewares.IsAuth(), routes.ZonifRoutes)
+	AddRoutes2(router, "/zonif", middlewares.SetId(), routes.ZonifRoutes)
+
+	AddRoutes2(router, "/vra", middlewares.IsAuth(), routes.VraRoutes)
 
 	//AddRoutes(router, "/zonif", routes.ZonifRoutes)
 

@@ -9,7 +9,7 @@ import (
 
 func FieldsRoutes(rgr *gin.RouterGroup) {
 
-	//rgr.GET("/fieldtest", controllers.TestField)
+	//rgr.GET("/fieldtest", controllers.FieldTest)
 
 	rgr.POST("/fields", controllers.FieldsList)       //FieldsList
 	rgr.POST("/fieldcreate", controllers.FieldCreate) //FieldsNew

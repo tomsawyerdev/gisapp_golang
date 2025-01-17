@@ -3,7 +3,6 @@ package controllers
 import (
 	"fmt"
 	//svc "gisapi/database"
-	"encoding/json"
 	"gisapi/dto"
 	"gisapi/models"
 	"github.com/gin-gonic/gin"
@@ -100,10 +99,7 @@ func FieldCreate(c *gin.Context) {
 	//-------------------------
 	//fmt.Println("   requestBody.Polygon:", requestBody.Polygon)
 
-	jsonString, _ := json.Marshal(requestBody.Polygon)
-	//fmt.Println(" Polygon  jsonString:", string(jsonString))
-
-	verify, reason, err := models.FieldcreateVerifyBoundary(string(jsonString))
+	verify, reason, err := models.FieldcreateVerifyBoundary(requestBody.Polygon)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
@@ -234,10 +230,7 @@ func FieldBoundary(c *gin.Context) {
 	//-------------------------
 	//fmt.Println("   requestBody.Polygon:", requestBody.Polygon)
 
-	jsonString, _ := json.Marshal(requestBody.Polygon)
-	//fmt.Println(" Polygon  jsonString:", string(jsonString))
-
-	verify, reason, err := models.FieldcreateVerifyBoundary(string(jsonString))
+	verify, reason, err := models.FieldcreateVerifyBoundary(requestBody.Polygon)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
@@ -296,15 +289,13 @@ func FieldTest(c *gin.Context) {
 	//polygon := `{"type":"Polygon","coordinates":[[[-63.846016,-31.299968],[-63.830223,-31.296155],[-63.800011,-31.328419],[-63.83503,-31.339856],[-63.846016,-31.299968]]]}`
 	//Badpolygon := `{"type":"Polygon","coordinates":[[[-63.846016,-31.299968],[-63.800011,-31.328419],[-63.830223,-31.296155],[-63.83503,-31.339856],[-63.846016,-31.299968]]]}`
 
-	jsonString, _ := json.Marshal(polygonMap)
-	fmt.Println("   jsonString:", string(jsonString))
-
-	verify, reason, err := models.FieldcreateVerifyBoundary(string(jsonString)) //requestBody.Polygon)
+	verify, reason, err := models.FieldcreateVerifyBoundary(polygonMap) //requestBody.Polygon)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
 		return
 	}
 
 	fmt.Println("   TestField:", verify, reason)
+	c.JSON(http.StatusOK, gin.H{"status": "success", "verify": verify, "reason": reason})
 
 }

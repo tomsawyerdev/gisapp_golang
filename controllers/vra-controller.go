@@ -9,6 +9,7 @@ import (
 	"net/http"
 	//"reflect"
 	//"strconv"
+	"os"
 )
 
 /*
@@ -118,9 +119,10 @@ func VraDelete(c *gin.Context) {
 func VraChannelCreate(c *gin.Context) {
 	fmt.Println("VraChannelCreate")
 	//userid := c.GetInt("userid")
-	var requestBody dto.VraChannel
+	var requestBody dto.VraChannelCreate
 
 	if err := c.BindJSON(&requestBody); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed BindJSON: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"status": 400, "message": "Invalid data"})
 		return
 	}
@@ -159,6 +161,7 @@ func VraChannelUpdate(c *gin.Context) {
 	var requestBody dto.VraChannelUpdate
 
 	if err := c.BindJSON(&requestBody); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed BindJSON: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"status": 400, "message": "Invalid data"})
 		return
 	}
@@ -175,15 +178,16 @@ func VraChannelUpdate(c *gin.Context) {
 func VraChannelDelete(c *gin.Context) {
 	fmt.Println("VraChannelDelete")
 	//userid := c.GetInt("userid")
-	var requestBody dto.VraChannelUpdate
+	var requestBody dto.VraChannelDelete
 
 	if err := c.BindJSON(&requestBody); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed BindJSON: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"status": 400, "message": "Invalid data"})
 		return
 	}
 	//requestBody.Userid = c.GetInt("userid")
 	//fmt.Println("requestBody:", requestBody)
-	err := models.VraChannelUpdate(requestBody)
+	err := models.VraChannelDelete(requestBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": 500, "error": err})
 		return

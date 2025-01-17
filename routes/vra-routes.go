@@ -24,15 +24,13 @@ import (
 func VraRoutes(rgr *gin.RouterGroup) {
 
 	rgr.POST("/vralist", controllers.VraList)
-	rgr.GET("/vralist", controllers.VraList) //for test
-	/*
-		rgr.POST("/vracreate", controllers.Vracreate)
-		rgr.POST("/vrarename", controllers.Vrarename)
-		rgr.POST("/vradelete", controllers.Vradelete)
-		rgr.POST("/vrachannelcreate", controllers.Vrachannelcreate)
-		rgr.POST("/vrachannelrename", controllers.Vrachannelrename)
-		rgr.POST("/vrachannelupdate", controllers.Vrachannelupdate)
-		rgr.POST("/vrachanneldelete", controllers.Vrachanneldelete)
-	*/
+	rgr.POST("/vracreate", controllers.VraCreate)
+	rgr.POST("/vrarename", controllers.VraRename)
+	rgr.POST("/vradelete", controllers.VraDelete)
+	//Channels:
+	rgr.POST("/vrachannelcreate", controllers.VraChannelCreate)
+	rgr.POST("/vrachannelrename", controllers.VraChannelRename)
+	rgr.POST("/vrachannelupdate", controllers.VraChannelUpdate)
+	rgr.POST("/vrachanneldelete", controllers.VraChannelDelete)
 
 }
